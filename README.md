@@ -1,6 +1,6 @@
 # k8s-openstack-kubeadm-bootstrap
 
-Steps to bootstrap:
+Steps to reproduce a cluster with this repository:
 1. Go to infra-terraform, and run terraform init, then terraform apply
 2. Wait for machines to get created. Terraform output will include some useful info like floating ip values
 3. Go to your domain DNS zone and assign these ip addresses to k8s.dev.superuser.kz (cluster load balancer ip) and gitlab.superuser.kz (gitlab machine ip)
