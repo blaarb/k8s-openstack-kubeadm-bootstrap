@@ -1,0 +1,31 @@
+---
+- name: Check if node already in cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf_file
+
+- name: Make node join cluster
+  block:
+    - name: Make control node join cluster
+      ansible.builtin.shell:
+        cmd: "{{ hostvars.control1.kubeadm_token_create_join_command.stdout }} --control-plane --certificate-key {{ hostvars.control1.kubeadm_init_upload_certs.stdout }}"
+      register: cluster_join_result
+      when: ansible_facts.fqdn.find('control') != -1
+
+    - name: Make worker node join cluster
+      ansible.builtin.shell:
+        cmd: "{{ hostvars.control1.kubeadm_token_create_join_command.stdout }}"
+      register: cluster_join_result
+      when: ansible_facts.fqdn.find('worker') != -1
+
+    - debug:
+        msg: "{{ cluster_join_result.stdout }}"
+      ignore_errors: true
+      when: cluster_join_result is defined 
+
+    - debug:
+        msg: "{{ cluster_join_result.rc }}"
+      ignore_errors: true
+      when: cluster_join_result is defined 
+  when: kubelet_conf_file.stat.exists == 0
+

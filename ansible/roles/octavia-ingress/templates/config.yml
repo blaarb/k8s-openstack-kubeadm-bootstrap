@@ -1,0 +1,20 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: "{{ octavia_configmap_name }}"
+  namespace: kube-system
+data:
+  config: |
+    cluster-name: "{{ k8s_cluster_name }}"
+    openstack:
+      auth-url: "{{ openstack_auth_url }}"
+      domain-name: "{{ openstack_domain_name }}"
+      username: "{{ openstack_username }}"
+      password: "{{ openstack_password }}"
+      project-id: "{{ openstack_project_id }}"
+      region: "{{ openstack_region }}"
+    octavia:
+      subnet-id: "{{ octavia_subnet_id }}"
+      floating-network-id: "{{ floating_network_id }}"
+      manage-security-groups: false

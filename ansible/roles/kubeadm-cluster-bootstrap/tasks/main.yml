@@ -1,0 +1,88 @@
+---
+- name: Check if there is already a cluster
+  ansible.builtin.shell: 
+    cmd: kubeadm token list
+  register: kubeadm_token_list
+  ignore_errors: true
+
+- name: Print kubeadm_token_list
+  debug:
+    msg: "{{ kubeadm_token_list.stdout }}"
+
+- name: Bootstrap control node with kubeadm
+  ansible.builtin.shell: 
+    cmd: kubeadm init --control-plane-endpoint "{{ k8s_load_balancer_dns }}:{{ k8s_load_balancer_port }}" --upload-certs --pod-network-cidr={{ pod_network_cidr }}
+  register: kubeadm_bootstrap
+  when: kubeadm_token_list.rc != 0
+
+- name: Print kubeadm_bootstrap
+  debug:
+    msg: "{{ kubeadm_bootstrap.rc }}"
+  ignore_errors: true
+  when: kubeadm_token_list.rc != 0
+
+- name: Put kubeconfig into var
+  ansible.builtin.shell:
+    cmd: cat /etc/kubernetes/admin.conf
+  register: kubeconfig
+  when: kubeconfig is undefined
+
+- name: Print kubeconfig
+  debug:
+    msg: "{{ kubeconfig.stdout }}"
+  ignore_errors: true
+
+- name: Fetch kubeconfig
+  ansible.builtin.fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    flat: yes
+  ignore_errors: true
+
+- name: Create .kube folder for root user
+  ansible.builtin.file:
+    state: directory
+    path: /root/.kube
+    mode: 0750
+    owner: root
+    group: root
+  loop:
+    - ubuntu
+    - root
+
+- name: Copy kubeconfig root user home
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    mode: 0600
+    owner: root
+    group: root
+    remote_src: true
+
+- name: Remember kubeadm join token
+  ansible.builtin.shell:
+    cmd: kubeadm token create --print-join-command
+  register: kubeadm_token_create_join_command
+
+- name: Remember fact kubeadm join token
+  ansible.builtin.set_fact:
+    kubeadm_token_create_join_command: "{{ kubeadm_token_create_join_command }}"
+
+- name: Print kubeadm_token_create_join_command
+  debug:
+    msg: "{{ kubeadm_token_create_join_command.stdout }}"
+  ignore_errors: true
+
+- name: Remember cert to join control nodes 
+  ansible.builtin.shell:
+    cmd: kubeadm init phase upload-certs --upload-certs | grep -vw -e certificate -e Namespace
+  register: kubeadm_init_upload_certs
+
+- name: Remember fact cert to join control nodes 
+  ansible.builtin.set_fact:
+    kubeadm_token_create_join_command: "{{ kubeadm_token_create_join_command }}"
+
+- name: Print kubeadm_init_upload_certs
+  debug:
+    msg: "{{ kubeadm_init_upload_certs.stdout }}"
+  ignore_errors: true

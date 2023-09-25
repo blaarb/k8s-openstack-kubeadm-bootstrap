@@ -1,0 +1,19 @@
+---
+- hosts: gitlab
+  roles: 
+    - gitlab-server
+
+- hosts: dev_kubernetes
+  roles:
+    - base_os_changes
+    - crio
+    - kubeadm
+
+- hosts: control1
+  roles:
+    - kubeadm-cluster-bootstrap
+    - calico-pod-network
+
+- hosts: controlplane,!control1,workers
+  roles:
+    - kubeadm-join-nodes

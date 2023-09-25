@@ -1,0 +1,22 @@
+- name: Create user admin
+  ansible.builtin.user:
+    name: admin
+    shell: /bin/bash
+  tags: admin_user
+
+- name: Set authorized keys for admin user
+  ansible.posix.authorized_key:
+    user: admin
+    state: present
+    key: "{{ item }}"
+  loop: "{{ admin_user_public_keys }}"
+  tags: admin_user
+
+- name: Allow admin user passwordless sudo
+  community.general.sudoers:
+    name: admin
+    state: present
+    nopassword: true
+    user: admin
+    commands: ALL
+  tags: admin_user

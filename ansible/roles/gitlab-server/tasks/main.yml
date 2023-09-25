@@ -1,0 +1,52 @@
+---
+- name: Install necessary packages
+  ansible.builtin.apt:
+    pkg:
+      - tmux
+      - vim
+      - openssh-server
+      - ca-certificates
+      - tzdata
+      - perl
+      - postfix
+      - debian-archive-keyring
+      - apt-transport-https
+    update_cache: true
+
+- name: Add gitlab-ce repo key
+  ansible.builtin.apt_key:
+    url: https://packages.gitlab.com/gitlab/gitlab-ce/gpgkey
+    keyring: /usr/share/keyrings/gitlab_gitlab-ce-archive-keyring.gpg
+
+- name: Add gitlab-ce repository
+  ansible.builtin.apt_repository:
+    filename: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
+    repo: "{{ item }}"
+    update_cache: true
+  loop:
+    - deb [signed-by=/usr/share/keyrings/gitlab_gitlab-ce-archive-keyring.gpg] https://packages.gitlab.com/gitlab/gitlab-ce/{{ os }}/ {{ dist }} main
+    - deb-src [signed-by=/usr/share/keyrings/gitlab_gitlab-ce-archive-keyring.gpg] https://packages.gitlab.com/gitlab/gitlab-ce/{{ os }}/ {{ dist }} main
+
+- name: Install gitlab-{{ gitlab_server_version }} package
+  ansible.builtin.apt:
+    name: gitlab-ce={{ gitlab_server_version }}
+    state: present
+
+- name: Copy gitlab.rb conf file
+  ansible.builtin.template:
+    src: gitlab.rb.j2
+    dest: /etc/gitlab/gitlab.rb
+    mode: 0600
+    owner: root
+    group: root
+
+- name: Run gitlab-ctl reconfigure
+  ansible.builtin.shell:
+    cmd: gitlab-ctl reconfigure
+
+- name: Fetch gitlab root password
+  ansible.builtin.fetch:
+    src: /etc/gitlab/initial_root_password
+    dest: ~/.gitlab-root-password
+    flat: yes
+  ignore_errors: true

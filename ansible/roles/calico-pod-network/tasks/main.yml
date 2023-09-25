@@ -1,0 +1,41 @@
+---
+- name: Check if Calico operator is already present 
+  ansible.builtin.shell:
+    cmd: kubectl get ns calico-system
+  register: calico_namespace_presence
+  ignore_errors: true
+
+- name: Calico installation tasks
+  block:
+    - name: Create root calico folder
+      ansible.builtin.file:
+        state: directory
+        path: /root/calico
+        mode: 0755
+        owner: root
+        group: root
+
+    - name: Download Tigera operator manifest
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/tigera-operator.yaml
+        dest: /root/calico
+        mode: 0644
+    
+    - name: Copy Calico manifest
+      ansible.builtin.template:
+        src: calico-manifest.yaml.j2
+        dest: /root/calico/custom-resources.yaml
+        mode: 0640
+        owner: root
+        group: root
+
+    - name: Install the Tigera Calico operator
+      ansible.builtin.shell:
+        cmd: kubectl create -f /root/calico/tigera-operator.yaml
+
+    - name: Install the Calico custom resources
+      ansible.builtin.shell:
+        cmd: kubectl apply -f /root/calico/custom-resources.yaml
+  when: calico_namespace_presence.rc != 0
+
+  

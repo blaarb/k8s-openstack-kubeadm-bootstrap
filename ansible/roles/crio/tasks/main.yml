@@ -1,0 +1,58 @@
+# Based on https://github.com/cri-o/cri-o/blob/main/install.md
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    pkg:
+    - apt-transport-https
+    - ca-certificates 
+    - curl
+    - gnupg
+    state: present
+    update_cache: true
+
+- name: Register a Ubuntu version 
+  ansible.builtin.shell:
+    cmd: cat /etc/os-release | grep VERSION_ID | awk -F '"' '{print $2}'
+  register: ubuntu_version
+
+- name: Add keys for crio repositories 
+  ansible.builtin.apt_key:
+    url: "{{ item.url }}"
+    keyring: "{{ item.keyring }}"
+  loop:
+    - { url: 'https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_{{ ubuntu_version.stdout }}/Release.key',
+        keyring: '/usr/share/keyrings/libcontainers-archive-keyring.gpg' }
+    - { url: 'https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ crio_version }}/xUbuntu_{{ ubuntu_version.stdout }}/Release.key', 
+        keyring: '/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg' }
+
+- name: Add crio repositories
+  ansible.builtin.apt_repository:
+    repo: "{{ item.repo}}"
+    state: present
+    filename: "{{ item.filename }}"
+  loop:
+    - {repo: 'deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_{{ ubuntu_version.stdout }}/ /', filename: 'devel:kubic:libcontainers:stable.list' }
+    - {repo: 'deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ crio_version }}/xUbuntu_{{ ubuntu_version.stdout }}/ /', filename: 'devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}.list'}
+
+- name: Install crio
+  ansible.builtin.apt:
+    pkg:
+    - cri-o 
+    - cri-o-runc
+
+- name: Create crio.conf.d directory 
+  ansible.builtin.file:
+    path: /etc/crio/crio.conf.d/
+    state: directory
+    mode: 0755
+
+- name: Set cgroup driver 
+  ansible.builtin.copy:
+    src: 02-cgroup-manager.conf
+    dest: /etc/crio/crio.conf.d/02-cgroup-manager.conf
+
+- name: Start and enable crio service 
+  ansible.builtin.systemd:
+    state: started
+    enabled: true
+    name: crio

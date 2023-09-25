@@ -1,0 +1,11 @@
+---
+- name: Check if nginx-ingress namespace is present
+  ansible.builtin.shell:
+    cmd: kubectl get ns ingress-nginx
+  register: ingress_namespace_presence
+  ignore_errors: true
+
+- name: Create nginx ingress resources
+  ansible.builtin.shell:
+    cmd: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.5.1/deploy/static/provider/cloud/deploy.yaml
+  when: ingress_namespace_presence.rc != 0

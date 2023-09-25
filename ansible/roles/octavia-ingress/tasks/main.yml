@@ -1,0 +1,44 @@
+---
+- name: Check if octavia ingress controller folder exists
+  ansible.builtin.shell:
+    cmd: kubectl -n kube-system get configmap {{ octavia_configmap_name }}
+  register: octavia_ingress_configmap_present
+  ignore_errors: true
+
+- name: Install octavia ingress 
+  block:
+    - name: Create octavia ingress controller folder
+      ansible.builtin.file:
+        state: directory
+        path: /etc/kubernetes/octavia-ingress-controller
+
+    - name: Copy service account manifest
+      ansible.builtin.copy:
+        src: service-account.yml
+        dest: /etc/kubernetes/octavia-ingress-controller/service-account.yml
+        mode: 0644
+
+    - name: Apply service account manifest
+      ansible.builtin.shell:
+        cmd: kubectl apply -f /etc/kubernetes/octavia-ingress-controller/service-account.yml
+
+    - name: Copy ingress-controller config manifest
+      ansible.builtin.template:
+        src: config.yml
+        dest: /etc/kubernetes/octavia-ingress-controller/configmap.yml
+        mode: 0640
+
+    - name: Apply ingress-controller config manifest
+      ansible.builtin.shell:
+        cmd: kubectl apply -f /etc/kubernetes/octavia-ingress-controller/configmap.yml
+
+    - name: Copy ingress controller deployment
+      ansible.builtin.template:
+        src: statefulset.yml
+        dest: /etc/kubernetes/octavia-ingress-controller/statefulset.yml
+        mode: 0640
+
+    - name: Apply ingress controller deployment
+      ansible.builtin.shell:
+        cmd: kubectl apply -f /etc/kubernetes/octavia-ingress-controller/statefulset.yml
+  when: octavia_ingress_configmap_present.rc != 0

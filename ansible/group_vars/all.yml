@@ -1,0 +1,35 @@
+admin_user_public_keys: 
+  - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABA.... user@laptop"
+
+# OS
+os: ubuntu
+dist: focal
+
+# Gitlab
+gitlab_server_version: 15.8.1-ce.0
+external_url: 'https://gitlab.superuser.kz'
+registry_external_url: 'https://registry.superuser.kz:5555'
+letsencrypt_contact_email: ['t*****@gmail.com']
+registry_s3_access_key: '*****'
+registry_s3_secret_key: '*****'
+registry_s3_bucket: '*****'
+registry_s3_region: 'kz-ala-1'
+registry_s3_engpoint: 'archive.pscloud.io'
+
+# k8s
+pod_network_cidr: 172.16.0.0/16
+k8s_load_balancer_dns: k8s.dev.superuser.kz
+k8s_load_balancer_port: 6443
+
+# OpenStack tenant
+k8s_cluster_name: "{{ k8s_load_balancer_dns }}"
+openstack_auth_url: https://auth.pscloud.io/v3/
+openstack_domain_name: Default
+openstack_username: *****
+openstack_password: *****
+openstack_project_id: *****
+openstack_region: kz-ala-1
+octavia_configmap_name: octavia-ingress-controller-config 
+octavia_subnet_id: e4b015a4-a3e3-42f9-b72f-4649ffe64f2c
+floating_network_id: 83554642-6df5-4c7a-bf55-21bc74496109
+octavia_ingress_controller_image: k8scloudprovider/octavia-ingress-controller:v1.26.0
